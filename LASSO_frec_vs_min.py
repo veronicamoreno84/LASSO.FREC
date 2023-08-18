@@ -57,8 +57,36 @@ def frecuencias_lasso(X,y,selection='cyclic'):
 
     return frecuencias
 
+def frecuencias_lasso_weighted(X,y,selection='cyclic'):
+    '''
+    Considera una grilla de valores de lambdas y aplica LASSO en todos los lambda de la grilla
+    :param X: Features
+    :param y: target
+    :return: La frecuencia con la que aparece cada variable cuando aplicamos LASSO en una grilla
+    '''
+    n,p = X.shape
+    eps = 0.001
+    lambda_max = np.linalg.norm(np.matmul(np.transpose(X),y) , np.inf)/n
+    lambda_min = eps*lambda_max
+    start = np.log10(lambda_min)
+    end = np.log10(lambda_max)
+    K=100
+    lambdas = np.logspace(start,end,K) # esta es la grilla de valores
+    frecuencias_w = p*[0]
+    for lambda_ in lambdas:
+        clf = Lasso(alpha=lambda_, fit_intercept=False,selection=selection)
+        clf.fit(X, y)
+        coeficientes = clf.coef_
+        suma_coef_abs = sum(abs(coeficientes))
+        for i in range(p):
+            frecuencias_w[i] += abs(coeficientes[i])/suma_coef_abs
+
+
+
+    return frecuencias_w
+
 def grafico_frecuencias_ordenadas(scenario,n,p,s,tau_list=[0.8],rho=None, showfig = False, savefig = True, save_in = None,
-                                  cant_simu = 1,selection = 'cyclic'):
+                                  cant_simu = 1,selection = 'cyclic', weight = False):
     '''
 
     :param scenario: El escenario a simular
@@ -82,7 +110,12 @@ def grafico_frecuencias_ordenadas(scenario,n,p,s,tau_list=[0.8],rho=None, showfi
         rb = RobustScaler()
         X = rb.fit_transform(X)
 
-        frecuencias_ = frecuencias_lasso(X,  y,selection)
+        if not weight:
+            frecuencias_ = frecuencias_lasso(X,  y,selection)
+        else :
+            frecuencias_ = frecuencias_lasso_weighted(X, y, selection)
+
+
         indeces_ordenan_frecuencias = np.argsort(frecuencias_).tolist()
         indeces_ordenan_frecuencias.reverse()
         indeces_ordenan_frecuencias_true = [idx for idx, x in enumerate(indeces_ordenan_frecuencias) if
@@ -335,19 +368,19 @@ def grafico_monte_carlo_por_cluster(scenario,cant_clusters, n, p, s, rho=0.9, ca
 
 
 scenario = '2'
-n= 400
-p = 50
+n= 200
+p = 100
 s = 10
-rho_list = [0.2]
+rho_list = [0.9]
 tau_list = [0.9]
-cant_sim = 1000
+cant_sim = 1
 selection='random'
 save_in = r'C:\Vero\ML\codigos_Python\Figuras_paper\Tau_fijo\SCENARIO%s' %(scenario)
 cant_clusters=10
 for rho in rho_list:
     for tau in tau_list:
-        grafico_monte_carlo_por_cluster(scenario, cant_clusters, n, p, s, rho=rho, cantidad_sim=cant_sim, tau=tau,
-                                        showfig=False, savefig=True, save_in=save_in)
-        #grafico_frecuencias_ordenadas(scenario, n ,p, s, tau_list=tau, rho = rho, showfig=False, savefig=True,
-                                          # save_in = save_in, cant_simu = cant_sim,selection=selection)
+        #grafico_monte_carlo_por_cluster(scenario, cant_clusters, n, p, s, rho=rho, cantidad_sim=cant_sim, tau=tau,
+                                        #showfig=False, savefig=True, save_in=save_in)
+        grafico_frecuencias_ordenadas(scenario, n ,p, s, tau_list=tau_list, rho = rho, showfig=True, savefig=False,
+                                           save_in = None, cant_simu = cant_sim,selection=selection, weight = True)
 
