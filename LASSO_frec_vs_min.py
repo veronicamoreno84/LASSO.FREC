@@ -1,97 +1,9 @@
 from sklearn.linear_model import Lasso
-from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import RobustScaler
 import numpy as np
 from scenarios import scenario_1,scenario_2,scenario_3
 import matplotlib.pyplot as plt
 
-def best_lasso(X,y,selection='cyclic'):
-    '''
-    :param X: Features
-    :param y: target
-    :return: el valor de lambda que encuentra LASSO.MIN en una grilla de penalziaciones
-    '''
-    n = len(y)
-    eps = 0.001
-    cv = 5
-    lambda_max = np.linalg.norm(np.matmul(np.transpose(X),y) , np.inf)/n
-    lambda_min = eps*lambda_max
-    start = np.log10(lambda_min)
-    end = np.log10(lambda_max)
-    K=100
-    lambdas = np.logspace(start,end,K)
-    lasso = Lasso(random_state=0, max_iter=100000,fit_intercept=False,selection=selection)
-    tuned_parameters = [{'alpha': lambdas}]
-    clf = GridSearchCV(lasso, tuned_parameters, cv=cv, scoring='neg_mean_squared_error')
-    clf.fit(X, y)
-    best_lambda = clf.best_params_['alpha']
-    best_score = clf.cv_results_['mean_test_score'][clf.best_index_]
-    best_std = clf.cv_results_['std_test_score'][clf.best_index_]
-
-    lasso_1se_index = np.argmax(np.where(clf.cv_results_['mean_test_score'] < best_score + best_std))
-    lambda_1se = lambdas[lasso_1se_index]
-    print('lambda 1se', lambda_1se)
-    print('lambda min', best_lambda)
-
-    return best_lambda, lambda_1se
-
-
-def frecuencias_lasso(X,y,selection='cyclic'):
-    '''
-    Considera una grilla de valores de lambdas y aplica LASSO en todos los lambda de la grilla
-    :param X: Features
-    :param y: target
-    :return: La frecuencia con la que aparece cada variable cuando aplicamos LASSO en una grilla
-    '''
-    n,p = X.shape
-    eps = 0.001
-    lambda_max = np.linalg.norm(np.matmul(np.transpose(X),y) , np.inf)/n
-    lambda_min = eps*lambda_max
-    start = np.log10(lambda_min)
-    end = np.log10(lambda_max)
-    K=100
-    lambdas = np.logspace(start,end,K) # esta es la grilla de valores
-    cant_veces_que_elijo_por_feature = np.zeros(p) #
-    for lambda_ in lambdas:
-        clf = Lasso(alpha=lambda_, fit_intercept=False,selection=selection)
-        clf.fit(X, y)
-        coeficientes = clf.coef_
-        selected_coef = [1 if abs(coeficientes[i])>0.00001 else 0 for i in range(p)]
-
-        cant_veces_que_elijo_por_feature += selected_coef
-
-    frecuencias = [cant/len(lambdas) for cant in cant_veces_que_elijo_por_feature]
-
-
-    return frecuencias
-
-def frecuencias_lasso_weighted(X,y,selection='cyclic'):
-    '''
-    Considera una grilla de valores de lambdas y aplica LASSO en todos los lambda de la grilla
-    :param X: Features
-    :param y: target
-    :return: La frecuencia con la que aparece cada variable cuando aplicamos LASSO en una grilla
-    '''
-    n,p = X.shape
-    eps = 0.001
-    lambda_max = np.linalg.norm(np.matmul(np.transpose(X),y) , np.inf)/n
-    lambda_min = eps*lambda_max
-    start = np.log10(lambda_min)
-    end = np.log10(lambda_max)
-    K=100
-    lambdas = np.logspace(start,end,K) # esta es la grilla de valores
-    frecuencias_w = p*[0]
-    suma_coef_abs=0
-    for lambda_ in lambdas:
-        clf = Lasso(alpha=lambda_, fit_intercept=False,selection=selection)
-        clf.fit(X, y)
-        coeficientes = clf.coef_
-        suma_coef_abs += sum(abs(coeficientes))
-        for i in range(p):
-            frecuencias_w[i] += abs(coeficientes[i])
-
-
-    return frecuencias_w
 
 def grafico_frecuencias_ordenadas(scenario,n,p,s,tau_list=[0.8],rho=None, showfig = False, savefig = True, save_in = None,
                                   cant_simu = 1,selection = 'cyclic', weight = False):
@@ -119,13 +31,16 @@ def grafico_frecuencias_ordenadas(scenario,n,p,s,tau_list=[0.8],rho=None, showfi
         X = rb.fit_transform(X)
 
         if not weight:
-            frecuencias_ = frecuencias_lasso(X,  y,selection)
+            #frecuencias_ = frecuencias_lasso(X,  y,selection)
+            frecuencias_ = area_tray_coef_lasso(X, y, selection)
         else :
             frecuencias_ = frecuencias_lasso_weighted(X, y, selection)
 
 
+
         indeces_ordenan_frecuencias = np.argsort(frecuencias_).tolist()
         indeces_ordenan_frecuencias.reverse()
+        print('indices ordenan areas', indeces_ordenan_frecuencias)
         indeces_ordenan_frecuencias_true = [idx for idx, x in enumerate(indeces_ordenan_frecuencias) if
                                             x in range(s)]
         indeces_ordenan_frecuencias_false = [idx for idx, x in enumerate(indeces_ordenan_frecuencias) if
@@ -133,15 +48,15 @@ def grafico_frecuencias_ordenadas(scenario,n,p,s,tau_list=[0.8],rho=None, showfi
         frecuencias_ord_true_var = [frecuencias_[i] for i in indeces_ordenan_frecuencias if i in range(s)]
         frecuencias_ord_false_var = [frecuencias_[i] for i in indeces_ordenan_frecuencias if i not in range(s)]
         fig, ax = plt.subplots()
-        for tau in tau_list:
-            plt.axhline(y=tau, color='black', linestyle='--',
-                        linewidth=1, label='bla')
-
-        plt.axvline(x=s, color='black', linestyle='--',
-                    linewidth=1, label='bla')
+        # for tau in tau_list:
+        #     plt.axhline(y=tau, color='black', linestyle='--',
+        #                 linewidth=1, label='bla')
+        #
+        # plt.axvline(x=s, color='black', linestyle='--',
+        #             linewidth=1, label='bla')
         plt.plot(indeces_ordenan_frecuencias_true, frecuencias_ord_true_var, 'co', color='blue', )
         plt.plot(indeces_ordenan_frecuencias_false, frecuencias_ord_false_var, 'co', color='green', )
-        title = r'Ordered frequencies %s, n=%s, s=%s, $\rho$=%s' % (selection,n, s, rho)
+        title = r'Ordered frequencies  n=%s, s=%s, $\rho$=%s' % (n, s, rho)
         plt.title(title)
         if savefig:
             filename = r'\SC%s_FREC%s_n%s_p%s_s%s_rho%s_%s.png' % (scenario,selection,n, p, s, rho,sim)
@@ -251,22 +166,24 @@ def monte_carlo_LASSOMIN_VS_LASSOFREC(scenario,n,p,s, cantidad_sim=1,rho=None,ta
 
         mean_cant_false_fea_selec_LASSOFREC = cant_false_fea_selec_LASSOFREC/cantidad_sim
         mean_cant_true_fea_selec_LASSOFREC = cant_true_fea_selec_LASSOFREC/cantidad_sim
+        return mean_cant_true_fea_selec_LASSOMIN, mean_cant_false_fea_selec_LASSOMIN, mean_cant_true_fea_selec_LASSO1se, mean_cant_false_fea_selec_LASSO1se, mean_cant_true_fea_selec_LASSOFREC, mean_cant_false_fea_selec_LASSOFREC
+
 
     else:
         mean_cant_false_fea_selec_LASSOMIN = [cant / cantidad_sim for cant in
                                                cant_false_fea_selec_LASSOMIN]
         mean_cant_true_fea_selec_LASSOMIN = [cant / cantidad_sim for cant in cant_true_fea_selec_LASSOMIN]
 
-        mean_cant_false_fea_selec_LASSO1se = [cant / cantidad_sim for cant in
-                                              cant_false_fea_selec_LASSO1se]
-        mean_cant_true_fea_selec_LASSO1se = [cant / cantidad_sim for cant in cant_true_fea_selec_LASSO1se]
+        #mean_cant_false_fea_selec_LASSO1se = [cant / cantidad_sim for cant in
+                                             # cant_false_fea_selec_LASSO1se]
+        #mean_cant_true_fea_selec_LASSO1se = [cant / cantidad_sim for cant in cant_true_fea_selec_LASSO1se]
 
         mean_cant_false_fea_selec_LASSOFREC = [cant / cantidad_sim for cant in
                                                            cant_false_fea_selec_LASSOFREC]
         mean_cant_true_fea_selec_LASSOFREC = [cant / cantidad_sim for cant in cant_true_fea_selec_LASSOFREC]
 
 
-    return mean_cant_true_fea_selec_LASSOMIN,mean_cant_false_fea_selec_LASSOMIN,mean_cant_true_fea_selec_LASSO1se, mean_cant_false_fea_selec_LASSO1se, mean_cant_true_fea_selec_LASSOFREC,mean_cant_false_fea_selec_LASSOFREC
+        return mean_cant_true_fea_selec_LASSOMIN,mean_cant_false_fea_selec_LASSOMIN, mean_cant_true_fea_selec_LASSOFREC,mean_cant_false_fea_selec_LASSOFREC
 
 
 def grafico_monte_carlo(scenario, n_list,p,s,rho=0.9,cantidad_sim = 1, tau = 0.8,showfig=True, savefig = False, save_in=None):
@@ -401,35 +318,35 @@ def grafico_monte_carlo_por_cluster(scenario,cant_clusters, n, p, s, rho=0.9, ca
 
 
 
-scenario = '3'
-n_list = [100,200,400]
-p = 50
-rho_list = [0.2]
-#tau = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]
-tau_for_MC_sim = [0.8]
-cant_sim = 1
-#save_in = r'C:\Vero\ML\codigos_Python\Figuras_paper\Frecuencias_ordenadas\SCENARIO%s' %(scenario)
-save_in = r'C:\Vero\ML\codigos_Python\Figuras_paper\Tau_fijo\SCENARIO%s' %(scenario)
-for rho in rho_list:
-    for tau in tau_for_MC_sim:
-        grafico_monte_carlo(scenario, n_list,p,s= 10,rho=rho,cantidad_sim = cant_sim, tau = tau,showfig= True,
-                            savefig=False,save_in = save_in)
+# scenario = '1'
+# n_list = [100,200,400]
+# p = 50
+# rho_list = [None]
+# #tau = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]
+# tau_for_MC_sim = [0.8]
+# cant_sim = 1
+# #save_in = r'C:\Vero\ML\codigos_Python\Figuras_paper\Frecuencias_ordenadas\SCENARIO%s' %(scenario)
+# save_in = r'C:\Vero\ML\codigos_Python\Figuras_paper\Tau_fijo\SCENARIO%s' %(scenario)
+# for rho in rho_list:
+#     for tau in tau_for_MC_sim:
+#         grafico_monte_carlo(scenario, n_list,p,s= 10,rho=rho,cantidad_sim = cant_sim, tau = tau,showfig= True,
+#                             savefig=False,save_in = save_in)
 
 
-# scenario = '3'
-# n= 100
+# scenario = '1'
+# n= 400
 # p = 50
 # s = 10
-# rho_list = [0.2,0.5,0.9]
-# tau_list = [0.9]
-# cant_sim = 1
+# rho_list = [None]
+# tau_list = [0.8]
+# cant_sim = 10
 # selection='cyclic'
 # save_in = r'C:\Vero\ML\codigos_Python\Figuras_paper\Tau_fijo\SCENARIO%s' %(scenario)
 # cant_clusters=10
 # for rho in rho_list:
 #     for tau in tau_list:
-#         grafico_monte_carlo_por_cluster(scenario, cant_clusters, n, p, s, rho=rho, cantidad_sim=cant_sim, tau=tau,
-#                                         showfig=True, savefig=False, save_in=save_in)
-#         #grafico_frecuencias_ordenadas(scenario, n ,p, s, tau_list=tau_list, rho = rho, showfig=True, savefig=False,
-#                                            #save_in = None, cant_simu = cant_sim,selection=selection, weight = False)
-#
+#         #grafico_monte_carlo_por_cluster(scenario, cant_clusters, n, p, s, rho=rho, cantidad_sim=cant_sim, tau=tau,
+#                                       # showfig=True, savefig=False, save_in=save_in)
+#         grafico_frecuencias_ordenadas(scenario, n ,p, s, tau_list=tau_list, rho = rho, showfig=True, savefig=False,
+#                                            save_in = None, cant_simu = cant_sim,selection=selection, weight = False)
+# #
