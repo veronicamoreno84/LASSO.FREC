@@ -27,7 +27,5 @@ def best_lasso(X,y,selection='cyclic'):
 
     lasso_1se_index = np.argmax(np.where(clf.cv_results_['mean_test_score'] < best_score + best_std))
     lambda_1se = lambdas[lasso_1se_index]
-    print('lambda 1se', lambda_1se)
-    print('lambda min', best_lambda)
 
     return best_lambda, best_score,lambda_1se
