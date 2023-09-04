@@ -17,7 +17,7 @@ def best_lasso(X,y,selection='cyclic'):
     end = np.log10(lambda_max)
     K=100
     lambdas = np.logspace(start,end,K)
-    lasso = Lasso(random_state=0, max_iter=100000,fit_intercept=False,selection=selection)
+    lasso = Lasso(random_state=0, max_iter=1000000,fit_intercept=False,selection=selection)
     tuned_parameters = [{'alpha': lambdas}]
     clf = GridSearchCV(lasso, tuned_parameters, cv=cv, scoring='neg_mean_squared_error')
     clf.fit(X, y)
