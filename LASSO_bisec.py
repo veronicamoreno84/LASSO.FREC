@@ -201,11 +201,11 @@ def grafico_montecarlo_bisec(scenario, n_list, p, s, mse='todas',rho=None,cant_c
 
 
 
-scenario = '1'
-n_list = [100,200,400]
+scenario = '2'
+n_list = [400]
 p = 50
 s = 10
-rho_list = [None]
+rho_list = [0.9]
 sigma2 = 0.9
 cant_clusters = 10
 cant_sim = 1000

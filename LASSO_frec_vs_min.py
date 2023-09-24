@@ -34,8 +34,7 @@ def grafico_frecuencias_ordenadas(scenario,n,p,s,tau_list=[0.8],rho=None, showfi
         X = rb.fit_transform(X)
 
         if not weight:
-            #frecuencias_ = frecuencias_lasso(X,  y,selection)
-            frecuencias_ = area_tray_coef_lasso(X, y, selection)
+            frecuencias_ = frecuencias_lasso(X,  y,selection)
         else :
             frecuencias_ = frecuencias_lasso_weighted(X, y, selection)
 
