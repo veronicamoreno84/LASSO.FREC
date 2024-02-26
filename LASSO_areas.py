@@ -1,11 +1,15 @@
 import numpy as np
 from sklearn.linear_model import Lasso
 from sklearn.preprocessing import RobustScaler
+import matplotlib.colors as mcolors
 import numpy as np
 from scenarios import scenario_1,scenario_2,scenario_3, scenario_1_random_coef, scenario_2_random_coef,scenario_3_coef_random
 import matplotlib.pyplot as plt
 
-def area_tray_coef_lasso(X,y,selection='cyclic'):
+colors = mcolors.TABLEAU_COLORS
+print(colors)
+
+def area_tray_coef_lasso(X,y,fit_intercept=False,selection='cyclic'):
     '''
     Considera una grilla de valores de lambdas y aplica LASSO en todos los lambda de la grilla
     :param X: Features
@@ -22,7 +26,7 @@ def area_tray_coef_lasso(X,y,selection='cyclic'):
     lambdas = np.logspace(start,end,K) # esta es la grilla de valores
     areas = p * [0]
     for lambda_ in lambdas:
-        clf = Lasso(alpha=lambda_, fit_intercept=False, selection=selection)
+        clf = Lasso(alpha=lambda_, fit_intercept=fit_intercept, selection=selection)
         clf.fit(X, y)
         coeficientes = clf.coef_
         for i in range(p):
@@ -31,7 +35,7 @@ def area_tray_coef_lasso(X,y,selection='cyclic'):
     return norm
 
 
-def grafico_frecuencias_ordenadas(scenario,n,p,s,rho=None, showfig = False, savefig = True, save_in = None,
+def grafico_areas_ordenadas(scenario,n,p,s,rho=None, showfig = False, savefig = True, save_in = None,
                                   cant_simu = 1,selection = 'cyclic'):
     '''
 
@@ -79,8 +83,10 @@ def grafico_frecuencias_ordenadas(scenario,n,p,s,rho=None, showfig = False, save
         frecuencias_ord_false_var = [frecuencias_[i] for i in indeces_ordenan_frecuencias if i not in range(s)]
         fig, ax = plt.subplots()
 
-        plt.plot(indeces_ordenan_frecuencias_true, frecuencias_ord_true_var, 'co', color='blue', label='True variables')
-        plt.plot(indeces_ordenan_frecuencias_false, frecuencias_ord_false_var, 'co', color='green',label='False variables' )
+
+
+        plt.plot(indeces_ordenan_frecuencias_true, frecuencias_ord_true_var, 'co', color='#1f77b4', label='True variables')
+        plt.plot(indeces_ordenan_frecuencias_false, frecuencias_ord_false_var, 'co', color='#ff7f0e',label='False variables' )
 
         if scenario == '1random' or scenario == '2random' or scenario == '3random':
             coef_ordered = [coef[x] for idx, x in enumerate(indeces_ordenan_frecuencias) if
@@ -99,24 +105,3 @@ def grafico_frecuencias_ordenadas(scenario,n,p,s,rho=None, showfig = False, save
             plt.show()
 
 
-# scenario = '3random'
-# n_list = [400]
-# p = 50
-# s = 10
-# rho_list = [0.2,0.5,0.9]
-# cant_sim = 1
-# selection='cyclic'
-# save_in = r'C:\Vero\ML\codigos_Python\Figuras_paper\Areas\SCENARIO%s' %(scenario)
-# for n in n_list:
-#     for rho in rho_list:
-#         grafico_frecuencias_ordenadas(scenario, n ,p, s, rho = rho, showfig=True, savefig=False,
-#                                            save_in = save_in, cant_simu = cant_sim,selection=selection)
-# #
-# cant_clusters=10
-# for rho in rho_list:
-#     for tau in tau_list:
-#         #grafico_monte_carlo_por_cluster(scenario, cant_clusters, n, p, s, rho=rho, cantidad_sim=cant_sim, tau=tau,
-#                                       # showfig=True, savefig=False, save_in=save_in)
-#         grafico_frecuencias_ordenadas(scenario, n ,p, s, tau_list=tau_list, rho = rho, showfig=True, savefig=False,
-#                                            save_in = None, cant_simu = cant_sim,selection=selection, weight = False)
-# #

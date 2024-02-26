@@ -1,19 +1,15 @@
 import pandas as pd
 import numpy as np
-import seaborn as sn
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import RobustScaler
 from sklearn.linear_model import Lasso
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
-
 from sklearn.model_selection import GridSearchCV
-from sklearn import datasets
 from sklearn.model_selection import train_test_split
-import pickle
 from sklearn.model_selection import KFold
 
-from LASSO_bisec import seleccion_variables_bis
+
 
 
 def best_lasso(X,y,fit_intercept=False):
